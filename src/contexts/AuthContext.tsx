@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: data.id,
         email: data.email || supabaseUser.email || '',
         name: data.name || '',
-        role: data.role || 'patient',
+        role: (data.role as UserRole) || 'patient',
         createdAt: data.created_at || new Date().toISOString(),
         updatedAt: data.updated_at || new Date().toISOString(),
         specialty: data.specialty || null,
@@ -52,27 +52,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Get initial session
+    let mounted = true;
+
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (session?.user && mounted) {
           const userProfile = await fetchUserProfile(session.user);
           setUser(userProfile);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     getInitialSession();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
         if (event === 'SIGNED_IN' && session?.user) {
           const userProfile = await fetchUserProfile(session.user);
           setUser(userProfile);
@@ -83,7 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (
@@ -108,14 +115,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        // The user profile will be created by the database trigger
-        // and fetched by the auth state change listener
-        return { user: null, error: null }; // User will be set by the listener
+        return { user: null, error: null };
       }
 
-      return { user: null, error: 'Unknown error occurred' };
+      return { user: null, error: 'Error desconocido' };
     } catch (error) {
-      return { user: null, error: 'Network error occurred' };
+      return { user: null, error: 'Error de conexión' };
     }
   };
 
@@ -138,9 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { user: userProfile, error: null };
       }
 
-      return { user: null, error: 'Unknown error occurred' };
+      return { user: null, error: 'Error desconocido' };
     } catch (error) {
-      return { user: null, error: 'Network error occurred' };
+      return { user: null, error: 'Error de conexión' };
     }
   };
 
@@ -157,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updates: Partial<User>
   ): Promise<{ user: User | null; error: string | null }> => {
     if (!user) {
-      return { user: null, error: 'No user logged in' };
+      return { user: null, error: 'No hay usuario logueado' };
     }
 
     try {
@@ -192,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(updatedUser);
       return { user: updatedUser, error: null };
     } catch (error) {
-      return { user: null, error: 'Network error occurred' };
+      return { user: null, error: 'Error de conexión' };
     }
   };
 

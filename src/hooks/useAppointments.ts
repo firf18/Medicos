@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 export interface Appointment {
   id: string;
@@ -70,8 +71,10 @@ export function useAppointments() {
       if (error) throw error;
 
       setAppointments(data || []);
+      toast.success('Citas cargadas correctamente');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error fetching appointments');
+      toast.error('Error al cargar las citas');
     } finally {
       setLoading(false);
     }
@@ -95,9 +98,11 @@ export function useAppointments() {
       if (error) throw error;
 
       setAppointments(prev => [...prev, data]);
+      toast.success('Cita creada exitosamente');
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error creating appointment');
+      toast.error('Error al crear la cita');
       return null;
     }
   };
@@ -126,9 +131,11 @@ export function useAppointments() {
       setAppointments(prev => 
         prev.map(apt => apt.id === id ? data : apt)
       );
+      toast.success('Cita actualizada exitosamente');
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error updating appointment');
+      toast.error('Error al actualizar la cita');
       return null;
     }
   };
@@ -155,9 +162,11 @@ export function useAppointments() {
             : apt
         )
       );
+      toast.success('Cita cancelada exitosamente');
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cancelling appointment');
+      toast.error('Error al cancelar la cita');
       return false;
     }
   };
